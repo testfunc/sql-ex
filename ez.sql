@@ -155,6 +155,115 @@ WHERE type = 'PC'
 GROUP BY maker
 HAVING COUNT(DISTINCT model) >= 3;
 
+/* 21)
+Find out the maximum PC price for each maker having models in the PC table. Result set: maker, maximum price. */
+SELECT p.maker, MAX(pc.price)
+FROM product p JOIN pc
+ON p.model = pc.model
+GROUP BY p.maker;
+
+/* 22)
+For each value of PC speed that exceeds 600 MHz, find out the average price of PCs with identical speeds.
+Result set: speed, average price. */
+SELECT speed, AVG(price) AS avg_price
+FROM pc
+WHERE speed > 600
+GROUP BY speed;
+
+/* 23)
+Get the makers producing both PCs having a speed of 750 MHz or higher and laptops with a speed of 750 MHz or higher.
+Result set: maker */
+SELECT p.maker FROM product p
+JOIN pc ON p.model = pc.model
+WHERE pc.speed >= 750
+INTERSECT
+SELECT p.maker FROM product p
+JOIN laptop l ON p.model = l.model
+WHERE l.speed >= 750;
+
+/* 24)
+List the models of any type having the highest price of all products present in the database. */
+WITH cte AS (SELECT model, price FROM pc
+            UNION ALL
+            SELECT model, price FROM laptop
+            UNION ALL
+            SELECT model, price FROM printer )
+
+SELECT DISTINCT model FROM cte
+WHERE price = (SELECT MAX(price) FROM cte);
+
+/* 25)
+Find the printer makers also producing PCs with the lowest RAM capacity and the highest processor speed of all PCs having the lowest RAM capacity.
+Result set: maker. */
+WITH cte AS (SELECT product.maker, product.type, pc.speed FROM product
+            LEFT JOIN pc ON product.model=pc.model
+            WHERE product.maker IN
+                (SELECT maker FROM product WHERE type = 'Printer')
+                AND pc.ram = (SELECT MIN(ram) FROM pc))
+
+SELECT DISTINCT maker FROM cte
+WHERE speed = (SELECT MAX(speed) FROM cte);
+
+/* 26)
+Find out the average price of PCs and laptops produced by maker A.
+Result set: one overall average price for all items. */
+SELECT AVG(price) AS avg_price
+FROM
+    (SELECT maker, price FROM pc
+    JOIN product ON pc.model = product.model
+    UNION ALL
+    SELECT maker, price FROM laptop
+    JOIN product ON laptop.model = product.model) sub
+WHERE maker = 'A'
+GROUP BY maker;
+
+/* 27)
+Find out the average hard disk drive capacity of PCs produced by makers who also manufacture printers.
+Result set: maker, average HDD capacity. */
+SELECT maker, AVG(hd) AS avg_hd
+FROM product
+JOIN pc ON product.model = pc.model
+WHERE maker IN (SELECT maker FROM product WHERE type = 'Printer')
+GROUP BY maker;
+
+/* 28)
+Using Product table, find out the number of makers who produce only one model. */
+SELECT COUNT(*) FROM
+    (SELECT COUNT(*) AS num
+    FROM product
+    GROUP BY maker) sub
+WHERE num = 1;
+
+
+/* The firm owns several buy-back centers for collection of recyclable materials. Each of them receives funds to be paid to the recyclables suppliers. Data on funds received is recorded in the table
+Income_o(point, date, inc)
+The primary key is (point, date), where point holds the identifier of the buy-back center, and date corresponds to the calendar date the funds were received. The date column doesn’t include the time part, thus, money (inc) arrives no more than once a day for each center. Information on payments to the recyclables suppliers is held in the table
+Outcome_o(point, date, out)
+In this table, the primary key (point, date) ensures each buy-back center reports about payments (out) no more than once a day, too.
+For the case income and expenditure may occur more than once a day, another database schema with tables having a primary key consisting of the single column code is used:
+Income(code, point, date, inc)
+Outcome(code, point, date, out)
+Here, the date column doesn’t include the time part, either. */
+
+
+/* 29)
+Under the assumption that receipts of money (inc) and payouts (out) are registered not more than once a day for each collection point [i.e. the primary key consists of (point, date)], write a query displaying cash flow data (point, date, income, expense).
+Use Income_o and Outcome_o tables. */
+SELECT point, date, inc, out FROM
+    (SELECT  inc, out,
+    CASE WHEN inc IS NULL then Outcome_o.point ELSE Income_o.point END point,
+    CASE WHEN inc IS NULL then Outcome_o.date ELSE Income_o.date END date
+    FROM Income_o
+    FULL JOIN Outcome_o ON Income_o.point = Outcome_o.point
+    AND Income_o.date = Outcome_o.date) sub
+ORDER BY point;
+
+
+
+
+
+
+
 
 
 
